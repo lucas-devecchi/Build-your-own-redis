@@ -26,11 +26,6 @@ static int32_t read_full(int fd, char *buf, size_t n)
     return 0;
 }
 
-/*
-    fd: socket to read
-    buf: buffer where we save bytes read
-    n: amount of bytes to read.
-*/
 static int32_t write_all(int fd, const char *buf, size_t n)
 {
     while (n > 0)
