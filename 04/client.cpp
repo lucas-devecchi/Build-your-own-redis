@@ -8,8 +8,6 @@
 
 using namespace std;
 
-const size_t k_max_msg = 4096; // k is from Konstant.
-
 static int32_t query(int fd, const char *text)
 {
     uint32_t len = (int32_t)strlen(text);
@@ -26,6 +24,34 @@ static int32_t query(int fd, const char *text)
     {
         return err;
     }
+
+    // 4 bytes header
+    char rbuf[4 + k_max_msg];
+    errno = 0;
+    int32_t err = read_full(fd, rbuf, 4);
+    if (err)
+    {
+        msg(errno == 0 ? "EOF" : "read() error");
+        return err;
+    }
+    memcpy(&len, rbuf, 4);
+    if (len > k_max_msg)
+    {
+        msg("too long");
+        return -1;
+    }
+
+    // reply body
+    err = read_full(fd, &rbuf[4], len);
+    if (err)
+    {
+        msg("read() error");
+        return err;
+    }
+
+    // do something
+    printf("server says: %.*s\n", len, &rbuf[4]);
+    return 0;
 }
 
 int main()
@@ -46,16 +72,12 @@ int main()
         die("connect");
     }
 
-    char msg[] = "hello";
-    write(fd, msg, strlen(msg)); // Write "hello" through socket
+    // send multiple requests
+    int32_t err = query(fd, "hello1");
 
-    char rbuf[64] = {};
-    ssize_t n = read(fd, rbuf, sizeof(rbuf) - 1); // Read from sv.
-    if (n < 0)
-    {
-        die("read");
-    }
-    printf("server says: %s\n", rbuf);
+    if (!err)
+        err = query(fd, "hello2");
+
     close(fd);
-    return 0;
+    return err;
 }
