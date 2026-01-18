@@ -45,7 +45,7 @@ static int32_t write_all(int fd, const char *buf, size_t n)
         n -= (size_t)rv;
         buf += rv;
     }
-    return 0;
+    return 0; 
 }
 
 
