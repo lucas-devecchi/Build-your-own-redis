@@ -1,0 +1,9 @@
+# Ejecutables
+server
+client
+prog
+
+# Archivos de depuración y objetos
+*.o
+*.dSYM/
+*.out
