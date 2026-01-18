@@ -35,7 +35,7 @@ static int32_t one_request(int connfd)
         return err;
     }
     uint32_t len = 0;
-    
+
     // side note: memcpy(destination, origin, howManyBytesCopy)
     memcpy(&len, rbuf, 4); // set msg length in "len" with the value of the first byte on buff read.
 
@@ -60,8 +60,8 @@ static int32_t one_request(int connfd)
     const char reply[] = "world";
     char wbuf[4 + sizeof(reply)];
     len = (uint32_t)strlen(reply); // parse length as uint_32t
-    memcpy(wbuf, &len, 4); // assign the 4 bytes for size.
-    memcpy(&wbuf[4], reply, len); // assign the payload ("world")
+    memcpy(wbuf, &len, 4);         // assign the 4 bytes for size.
+    memcpy(&wbuf[4], reply, len);  // assign the payload ("world")
     return write_all(connfd, wbuf, 4 + len);
 }
 
