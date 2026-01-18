@@ -54,7 +54,7 @@ static int32_t one_request(int connfd)
     }
 
     // do something
-    printf("client says: %.*s\n", len, rbuf[4]);
+    printf("client says: %.*s\n", len, &rbuf[4]);
 
     // reply using the same protocol
     const char reply[] = "world";
@@ -101,8 +101,7 @@ int main()
         // only serves one client connection at once
         while (true)
         {
-            int32_t err = 3; // Provisorio
-            //  one_request(connfd);
+            int32_t err = one_request(connfd);
             if (err)
             {
                 break;
