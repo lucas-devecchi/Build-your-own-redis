@@ -230,8 +230,10 @@ int main()
         {
             uint32_t ready = poll_args[i].revents;
             Conn *conn = fd2conn[poll_args[i].fd];
-            if(ready & POLLIN) handle_read(conn);
-            if(ready & POLLOUT) handle_write(conn);
+            if (ready & POLLIN)
+                handle_read(conn);
+            if (ready & POLLOUT)
+                handle_write(conn);
 
             if ((ready & POLLERR) || conn->want_close)
             {
