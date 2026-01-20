@@ -5,6 +5,7 @@
 #include <poll.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <cstring>
 #include "../utils.h"
 
 using std::vector;
@@ -44,14 +45,75 @@ static Conn *handle_accept(int listeningFd)
     return conn;
 }
 
+// append to the back
+static void buf_append(std::vector<uint8_t> &buf, const uint8_t *data, size_t len)
+{
+    buf.insert(buf.end(), data, data + len);
+}
+// remove from the front
+static void buf_consume(std::vector<uint8_t> &buf, size_t n)
+{
+    buf.erase(buf.begin(), buf.begin() + n);
+}
+
+// ex "try_one_request()"
+static bool process_message_from_buffer(Conn *conn)
+{
+    if (conn->incoming.size() < 4) // check if knows the msg size
+        return false; // want read
+
+    uint32_t len = 0;
+    memcpy(&len, conn->incoming.data(), 4);
+
+    if (len > k_max_msg)
+    {
+        conn->want_close = true;
+        return false; // want close
+    }
+
+    if (4 + len > conn->incoming.size()) // checks if msg is completed.
+        return false; // want read
+
+    // at this point, msg is completed and saved as request.
+    const uint8_t *request = &conn->incoming[4];
+
+    // got one request, do some application logic
+    printf("client says: len:%d data:%.*s\n",
+           len, len < 100 ? len : 100, request);
+
+    // generate the response (echo)
+    buf_append(conn->outgoing, (const uint8_t *)&len, 4);
+    buf_append(conn->outgoing, request, len);
+    // 5. Remove the message from `Conn::incoming`.
+    buf_consume(conn->incoming, 4 + len);
+    return true; // success
+}
+
+static void handle_read(Conn *conn)
+{
+    // Non-blocking read
+    uint8_t buf[64 * 1024];
+    ssize_t rv = read(conn->fd, buf, sizeof(buf));
+    if (rv <= 0)
+    {
+        conn->want_close = true;
+        return;
+    }
+    // 2. Add new data to the `Conn::incoming` buffer.
+    buf_append(conn->incoming, buf, (size_t)rv);
+    // 3. Try to parse the accumulated buffer.
+    // 4. Process the parsed message.
+    // 5. Remove the message from `Conn::incoming`.
+    process_message_from_buffer(conn);
+}
+
 int main()
 {
     // the listening socket
     int listeningFd = socket(AF_INET, SOCK_STREAM, 0);
     if (listeningFd < 0)
-    {
         die("socket()");
-    }
+
     int val = 1;
     setsockopt(listeningFd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
 
@@ -62,18 +124,14 @@ int main()
     addr.sin_addr.s_addr = ntohl(0); // wildcard address 0.0.0.0
     int rv = bind(listeningFd, (const sockaddr *)&addr, sizeof(addr));
     if (rv)
-    {
         die("bind()");
-    }
 
     fd_set_nb(listeningFd);
 
     // listen
     rv = listen(listeningFd, SOMAXCONN);
     if (rv)
-    {
         die("listen()");
-    }
 
     // a map of all client connections, indexed by fd
     vector<Conn *> fd2conn;
