@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <cstring>
 #include "../utils.h"
+#include <assert.h>
 
 using std::vector;
 struct Conn
@@ -60,7 +61,7 @@ static void buf_consume(std::vector<uint8_t> &buf, size_t n)
 static bool process_message_from_buffer(Conn *conn)
 {
     if (conn->incoming.size() < 4) // check if knows the msg size
-        return false; // want read
+        return false;              // want read
 
     uint32_t len = 0;
     memcpy(&len, conn->incoming.data(), 4);
@@ -72,7 +73,7 @@ static bool process_message_from_buffer(Conn *conn)
     }
 
     if (4 + len > conn->incoming.size()) // checks if msg is completed.
-        return false; // want read
+        return false;                    // want read
 
     // at this point, msg is completed and saved as request.
     const uint8_t *request = &conn->incoming[4];
@@ -104,7 +105,38 @@ static void handle_read(Conn *conn)
     // 3. Try to parse the accumulated buffer.
     // 4. Process the parsed message.
     // 5. Remove the message from `Conn::incoming`.
+
     process_message_from_buffer(conn);
+
+    // Check: has a response
+    if (conn->outgoing.size() > 0)
+    {
+        conn->want_read = false;
+        conn->want_write = true;
+
+        return handle_write(conn); // write response
+    } // else: want read
+}
+
+static void handle_write(Conn *conn)
+{
+    assert(conn->outgoing.size() > 0);
+    ssize_t rv = write(conn->fd, conn->outgoing.data(), conn->outgoing.size());
+    if (rv < 0)
+    {
+        conn->want_close = true;
+        return;
+    }
+    
+    // remove written data from 'outgoing'
+    buf_consume(conn->outgoing, (size_t)rv);
+
+    // Check: all data written
+    if (conn->outgoing.size() == 0)
+    {
+        conn->want_read = true;
+        conn->want_write = false;
+    } // else: want write
 }
 
 int main()
