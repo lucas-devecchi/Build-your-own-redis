@@ -106,7 +106,9 @@ static void handle_read(Conn *conn)
     // 4. Process the parsed message.
     // 5. Remove the message from `Conn::incoming`.
 
-    process_message_from_buffer(conn);
+    while (process_message_from_buffer(conn))
+    {
+    };
 
     // Check: has a response
     if (conn->outgoing.size() > 0)
@@ -127,7 +129,7 @@ static void handle_write(Conn *conn)
         conn->want_close = true;
         return;
     }
-    
+
     // remove written data from 'outgoing'
     buf_consume(conn->outgoing, (size_t)rv);
 
