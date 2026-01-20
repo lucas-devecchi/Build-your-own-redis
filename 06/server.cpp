@@ -90,6 +90,27 @@ static bool process_message_from_buffer(Conn *conn)
     return true; // success
 }
 
+static void handle_write(Conn *conn)
+{
+    assert(conn->outgoing.size() > 0);
+    ssize_t rv = write(conn->fd, conn->outgoing.data(), conn->outgoing.size());
+    if (rv < 0)
+    {
+        conn->want_close = true;
+        return;
+    }
+
+    // remove written data from 'outgoing'
+    buf_consume(conn->outgoing, (size_t)rv);
+
+    // Check: all data written
+    if (conn->outgoing.size() == 0)
+    {
+        conn->want_read = true;
+        conn->want_write = false;
+    } // else: want write
+}
+
 static void handle_read(Conn *conn)
 {
     // Non-blocking read
@@ -118,27 +139,6 @@ static void handle_read(Conn *conn)
 
         return handle_write(conn); // write response
     } // else: want read
-}
-
-static void handle_write(Conn *conn)
-{
-    assert(conn->outgoing.size() > 0);
-    ssize_t rv = write(conn->fd, conn->outgoing.data(), conn->outgoing.size());
-    if (rv < 0)
-    {
-        conn->want_close = true;
-        return;
-    }
-
-    // remove written data from 'outgoing'
-    buf_consume(conn->outgoing, (size_t)rv);
-
-    // Check: all data written
-    if (conn->outgoing.size() == 0)
-    {
-        conn->want_read = true;
-        conn->want_write = false;
-    } // else: want write
 }
 
 int main()
@@ -230,8 +230,8 @@ int main()
         {
             uint32_t ready = poll_args[i].revents;
             Conn *conn = fd2conn[poll_args[i].fd];
-            // if(ready & POLLIN) handle_read(conn);
-            // if(ready & POLLOUT) handle_write(conn);
+            if(ready & POLLIN) handle_read(conn);
+            if(ready & POLLOUT) handle_write(conn);
 
             if ((ready & POLLERR) || conn->want_close)
             {
