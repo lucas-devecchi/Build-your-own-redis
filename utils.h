@@ -23,4 +23,29 @@ static void die(const char *msg)
     abort();
 }
 
+int tcp_connect(uint32_t ip_addr, uint16_t port)
+{
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0)
+    {
+        die("socket()");
+        return -1;
+    }
+
+    struct sockaddr_in addr = {};
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    // Como INADDR_LOOPBACK ya está en Host Byte Order,
+    // usamos htonl para asegurar Network Byte Order
+    addr.sin_addr.s_addr = htonl(ip_addr);
+
+    if (connect(fd, (const struct sockaddr *)&addr, sizeof(addr)) < 0)
+    {
+        die("connect");
+        return -1;
+    }
+    return fd;
+}
+
+
 #endif
