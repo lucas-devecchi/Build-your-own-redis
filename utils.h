@@ -8,6 +8,7 @@
 #include <errno.h>
 
 const size_t k_max_msg = 4096;
+const size_t k_max_args = 200 * 1000;
 
 // Log a msg
 static void msg(const char *msg)
