@@ -23,6 +23,11 @@ static void die(const char *msg)
     abort();
 }
 
+static void msg_errno(const char *msg)
+{
+    fprintf(stderr, "[errno:%d] %s\n", errno, msg);
+}
+
 int tcp_connect(uint32_t ip_addr, uint16_t port)
 {
     int fd = socket(AF_INET, SOCK_STREAM, 0);

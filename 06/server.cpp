@@ -96,6 +96,9 @@ static void handle_write(Conn *conn)
     ssize_t rv = write(conn->fd, conn->outgoing.data(), conn->outgoing.size());
     if (rv < 0)
     {
+        if (errno = EAGAIN)
+            return;
+        msg_errno("write() error");
         conn->want_close = true;
         return;
     }
