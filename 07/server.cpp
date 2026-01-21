@@ -66,7 +66,6 @@ static void do_request(vector<string> &cmd, Response &out)
     }
 
     out.status = RES_ERR; // unrecognized command
-    return;
 }
 
 static bool read_u32(const uint8_t *&cur, const uint8_t *end, uint32_t &out)
