@@ -8,9 +8,66 @@
 #include <cstring>
 #include "../utils.h"
 #include <assert.h>
+#include <map>
 
+using std::map;
 using std::vector;
 using namespace std;
+
+struct Response
+{
+    uint32_t status = 0;
+    vector<uint8_t> data;
+};
+
+// Response::status
+enum
+{
+    RES_OK = 0,
+    RES_ERR = 1, // error
+    RES_NX = 2,  // key not found
+};
+
+// placeholder; implemented later
+static map<string, string> g_data;
+
+static void do_request(vector<string> &cmd, Response &out)
+{
+    string action = cmd[0];
+    string key = cmd[1];
+    string value = cmd[2];
+
+    // GET
+    if (cmd.size() == 2 && action == "get")
+    {
+        auto it = g_data.find(key);
+        if (it == g_data.end())
+        {
+            out.status = RES_NX; // not found
+            return;
+        }
+        const std::string &val = it->second;
+        out.data.assign(val.begin(), val.end());
+        return;
+    }
+
+    // SET
+    if (cmd.size() == 3 && action == "set")
+    {
+        g_data[key].swap(value); // changes the old pointer for value pointer 
+        return;
+    }
+
+    // DELETE
+    if (cmd.size() == 2 && action == "del")
+    {
+        g_data.erase(key);
+        return;
+    }
+
+    out.status = RES_ERR; // unrecognized command
+    return;
+}
 
 static bool read_u32(const uint8_t *&cur, const uint8_t *end, uint32_t &out)
 {
@@ -30,7 +87,7 @@ static bool read_str(const uint8_t *&cur, const uint8_t *end, size_t n, string &
         return false;
     }
     out.assign(cur, cur + n); // substring
-    cur += n; // set pointer ahead of substring.
+    cur += n;                 // set pointer ahead of substring.
     return true;
 }
 
