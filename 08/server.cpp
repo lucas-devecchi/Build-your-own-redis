@@ -15,17 +15,17 @@ using std::map;
 using std::vector;
 using namespace std;
 
-// global states
-static struct {
-    HMap db;    // top-level hashtable
-} g_data;
-
-// KV pair for the top-level hashtable
-struct Entry {
-    struct HNode node;  // hashtable node
-    std::string key;
-    std::string val;
+struct HNode {
+    HNode *next = NULL;
+    uint64_t hcode = 0; // hash value
 };
+
+struct HTab {
+    HNode **tab = NULL; // array of slots
+    size_t mask = 0;    // power of 2 array size, 2^n - 1
+    size_t size = 0;    // number of keys
+};
+
 
 int main()
 {
