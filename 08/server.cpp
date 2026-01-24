@@ -15,6 +15,18 @@ using std::map;
 using std::vector;
 using namespace std;
 
+// global states
+static struct {
+    HMap db;    // top-level hashtable
+} g_data;
+
+// KV pair for the top-level hashtable
+struct Entry {
+    struct HNode node;  // hashtable node
+    std::string key;
+    std::string val;
+};
+
 int main()
 {
     // the listening socket
