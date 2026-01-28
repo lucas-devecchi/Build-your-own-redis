@@ -15,23 +15,65 @@
 using std::map;
 using std::vector;
 using namespace std;
+#define container_of(ptr, T, member) \
+    ((T *)((char *)ptr - offsetof(T, member)))
 
-
-static struct {
-    HMap db;    // top-level hashtable
+static struct
+{
+    HMap db; // top-level hashtable
 } g_data;
 
 // KV pair for the top-level hashtable
-struct Entry {
-    struct HNode node;  // hashtable node
+struct Entry
+{
+    struct HNode node; // hashtable node
     std::string key;
     std::string val;
 };
 
-static bool entry_eq(HNode *lhs, HNode *rhs) {
+// Response::status
+enum
+{
+    RES_OK = 0,
+    RES_ERR = 1, // error
+    RES_NX = 2,  // key not found
+};
+
+static bool entry_eq(HNode *lhs, HNode *rhs)
+{
     struct Entry *le = container_of(lhs, struct Entry, node);
     struct Entry *re = container_of(rhs, struct Entry, node);
     return le->key == re->key;
+}
+
+// FNV hash
+static uint64_t str_hash(const uint8_t *data, size_t len)
+{
+    uint32_t h = 0x811C9DC5;
+    for (size_t i = 0; i < len; i++)
+    {
+        h = (h + data[i]) * 0x01000193;
+    }
+    return h;
+}
+
+static void do_get(std::vector<std::string> &cmd, Response &out)
+{
+    // a dummy `Entry` just for the lookup
+    Entry key;
+    key.key.swap(cmd[1]);
+    key.node.hcode = str_hash((uint8_t *)key.key.data(), key.key.size());
+    // hashtable lookup
+    HNode *node = hm_lookup(&g_data.db, &key.node, &entry_eq);
+    if (!node)
+    {
+        out.status = RES_NX;
+        return;
+    }
+    // copy the value
+    const std::string &val = container_of(node, Entry, node)->val;
+    assert(val.size() <= k_max_msg);
+    out.data.assign(val.begin(), val.end());
 }
 
 int main()
