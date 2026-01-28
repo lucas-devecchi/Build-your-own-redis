@@ -34,6 +34,7 @@ struct HMap
 
 // Functions for the fixed table (HTab)
 // ------------------------------------------------------------------
+const size_t k_max_load_factor = 8;
 
 void h_init(HTab *htab, size_t n);
 void h_insert(HTab *htab, HNode *node);
