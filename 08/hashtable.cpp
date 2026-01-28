@@ -72,7 +72,7 @@ static void hm_help_rehashing(HMap *hmap)
     {
         // find a non-empty slot
         HNode **from = &hmap->older.tab[hmap->migrate_pos];
-        if (!*from)
+        if (!*from) // is the slot empty?
         {
             hmap->migrate_pos++;
             continue; // empty slot
